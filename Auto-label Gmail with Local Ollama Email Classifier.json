@@ -1,0 +1,342 @@
+{
+  "name": "Auto-label Gmail with Local Ollama Email Classifier",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {}
+      },
+      "id": "83034b96-0288-47db-94b0-f579eecc68c4",
+      "name": "Gmail trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "position": [
+        -992,
+        -112
+      ],
+      "typeVersion": 1.2,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c1PsSFYX5rP8LWr3",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": "={{ $json.id }}"
+      },
+      "id": "78740713-4210-448a-b582-25ad015fedde",
+      "name": "Get message content",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        -736,
+        -112
+      ],
+      "webhookId": "b773894c-18c6-454d-9271-6de10be1b7c4",
+      "typeVersion": 2.1,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c1PsSFYX5rP8LWr3",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:11434/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"email-classifier\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a classifier working on a problem described in task_description XML block:\\n<task_description>## Task\\nClassify incoming emails into one of ten predefined categories to enable intelligent email organization, prioritization, and automation workflows. The classification must accurately determine the email's primary purpose and intent based on comprehensive analysis of sender information, subject line, body content, formatting patterns, and contextual signals. The system should handle multi-lingual emails (English and French), mixed personal/professional contexts, and edge cases where emails may contain elements of multiple categories.\\n\\n## Inputs\\nComplete email content including:\\n- Subject line (required)\\n- Email body text (required)\\n- Sender information (when available)\\n- Metadata such as timestamps, domains, and formatting (when available)\\n\\n## Outputs\\nA single category label that best represents the email's primary purpose and expected user action.\\n\\n## Classification Guidelines\\n1. **Multi-category Resolution:** When an email contains elements of multiple categories, classify based on the PRIMARY user action required. Priority order for ambiguous cases: Security > Spam > Billing > Work > Travel > Shipping > Personal > Promotional > Newsletter > Other.\\n2. **Language Handling:** The system must accurately classify emails in both English and French based on content meaning. French keywords (e.g., 'facture', 'virement', 'livraison') must be recognized.\\n3. **Context Awareness:** Consider sender domain and structure. E.g., '@linkedin.com' about jobs is AI/Work, but about network posts is AI/Newsletter.\\n4. **Edge Case Principles:**\\n   - Security concerns always take precedence.\\n   - Obvious spam/phishing is always AI/Spam.\\n   - Transactional emails (receipts) go to AI/Billing.\\n   - Personal relationships override platform context.\\n   - Work context is determined by professional intent, not just sender.\\n\\n## Decision Logic Examples\\n- **LinkedIn Flow:** Job posting = AI/Work; Personal msg = AI/Personal; Digest = AI/Newsletter; Profile view = AI/Other.\\n- **Payment Flow:** If amount+ID present = AI/Billing; If phishing/scam = AI/Spam; If shipping focus = AI/Shipping.\\n- **Notification Flow:** Security alert = AI/Security; Payment = AI/Billing; Delivery = AI/Shipping; Personal msg = AI/Personal.</task_description>\\nClassify the input into one of the available classes, each class has a name in class_name and description in class_description XML block:\\n\\n<class_name>AI/Promotional</class_name>\\n<class_description>Marketing and sales communications from businesses, services, or platforms promoting products, services, features, or special offers. INDICATORS: Discount codes, limited-time deals, product launches, 'Upgrade today' calls-to-action, webinar invitations. EXAMPLES: SaaS discount offers, early access invites, Black Friday sales. EDGE CASES: Work-related webinar invites from vendors count as Promotional.</class_description>\\n\\n<class_name>AI/Travel</class_name>\\n<class_description>All communications related to travel arrangements, transportation bookings, accommodations, and trip logistics. INDICATORS: Flight/Hotel confirmations, boarding passes, car rental reservations, itineraries. EXAMPLES: Air France confirmations, Airbnb bookings, Eurostar tickets. EDGE CASES: Work conference travel is AI/Travel (logistics focus), not AI/Work.</class_description>\\n\\n<class_name>AI/Spam</class_name>\\n<class_description>Unsolicited, fraudulent, or malicious emails including phishing attempts, scams, lottery notifications, and suspicious requests. INDICATORS: Unrealistic promises ('You won!'), urgent threats, requests for passwords/SSN, generic greetings, poor grammar, mismatched sender domains. EXAMPLES: Phishing impersonating Amazon/banks, inheritance scams, crypto schemes. EDGE CASES: Legitimate security alerts go to AI/Security; aggressive but legitimate marketing goes to AI/Promotional.</class_description>\\n\\n<class_name>AI/Shipping</class_name>\\n<class_description>Order fulfillment communications including shipping confirmations, tracking updates, delivery notifications, and returns. INDICATORS: Tracking numbers (UPS/FedEx), 'Out for delivery' status, delivered photos, return labels. EXAMPLES: Amazon shipment updates, UPS delivery notifications. EDGE CASES: Order confirmations without shipping info often go to AI/Billing.</class_description>\\n\\n<class_name>AI/Security</class_name>\\n<class_description>Account security notifications including login alerts, authentication codes, and password changes. INDICATORS: New device logins, 2FA codes, password reset requests, suspicious activity alerts. EXAMPLES: Google sign-in alerts, Microsoft 2FA codes, GitHub security keys. EDGE CASES: If the email is a scam threat, it is AI/Spam.</class_description>\\n\\n<class_name>AI/Billing</class_name>\\n<class_description>Financial transaction communications including invoices, payment receipts, subscription charges, and refunds. INDICATORS: Invoice numbers, transaction IDs, 'Payment successful', subscription renewals, tax receipts. EXAMPLES: Stripe receipts, Netflix renewals, cloud billing statements. EDGE CASES: Order confirmations with payment info are AI/Billing; Expired trial upsells are AI/Promotional.</class_description>\\n\\n<class_name>AI/Work</class_name>\\n<class_description>Professional and employment-related communications including job opportunities, project updates, team collaboration, and career development. INDICATORS: Job postings, meeting agendas, sprint planning, pull requests, performance reviews, client emails. EXAMPLES: LinkedIn Recruiter messages, Jira updates, Slack digest, client project requirements. EDGE CASES: Professional conference travel is AI/Travel; Work-related SaaS receipts are AI/Billing.</class_description>\\n\\n<class_name>AI/Newsletter</class_name>\\n<class_description>Curated content digests, regular informational updates, or periodic communications from subscribed sources. INDICATORS: Daily/weekly cadence, multiple article links, 'digest', 'roundup', unsubscribe links. EXAMPLES: TechCrunch daily, GitHub trending, Substack newsletters. EDGE CASES: A single dedicated promotional email from a newsletter sender is AI/Promotional.</class_description>\\n\\n<class_name>AI/Personal</class_name>\\n<class_description>Direct personal communications from friends, family, or colleagues regarding non-professional matters. INDICATORS: Casual tone, social plans (coffee/dinner), birthday wishes, personal advice. EXAMPLES: Friend asking to hang out, family updates, personal networking. EDGE CASES: Colleagues emailing about work are AI/Work; Platform notifications about messages are AI/Other.</class_description>\\n\\n<class_name>AI/Other</class_name>\\n<class_description>Miscellaneous communications including platform notifications, system messages, event registrations, and administrative notices. INDICATORS: Automated system updates, terms of service changes, community moderation, badge awards, meetup confirmations. EXAMPLES: Reddit upvote notifications, Terms of Service updates, event registrations. EDGE CASES: Security notifications must go to AI/Security.</class_description>\\n\\nWrite the name of the predicted class inside output XML block\\nFor example, if the input matches class test_output, write\\n<output>test_output</output>\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": {{ JSON.stringify(\"From: \" + $json.From + \"\\nSubject: \" + $json.Subject + \"\\n\\n\" + $json.snippet) }}\n    }\n  ],\n  \"temperature\": 0\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -528,
+        -112
+      ],
+      "id": "10aa5b14-ed41-478c-b9fe-a3d8dda02b45",
+      "name": "Call Ollama Classifier"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract the classification from Ollama response\nconst response = $input.first().json.choices[0].message.content;\nconst match = response.match(/<output>(.*?)<\\/output>/);\nconst label = match ? match[1] : \"AI/Other\";\n\nreturn [{ predicted_label: label }];"
+      },
+      "id": "8e794c0d-2fe1-421c-882b-25fc4cc8ef25",
+      "name": "Extract Label",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -320,
+        -112
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "72d11a72-6693-447c-b7ca-4ba1a3579075",
+              "name": "labels",
+              "type": "string",
+              "value": "={{ $json.predicted_label }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "793f451d-0e64-4c99-aefd-100febdc77db",
+      "name": "Set label values",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -96,
+        -112
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "resource": "label",
+        "returnAll": true
+      },
+      "id": "dc1d35e2-107f-4498-b6e9-904d6866786b",
+      "name": "Get all labels",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        176,
+        -240
+      ],
+      "webhookId": "dec6f574-f47c-4b5d-86b9-2b0f6c957145",
+      "typeVersion": 2.1,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c1PsSFYX5rP8LWr3",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "labels",
+        "options": {}
+      },
+      "id": "52d7b431-9670-49f6-9abf-5e672524945f",
+      "name": "Split out assigned labels",
+      "type": "n8n-nodes-base.splitOut",
+      "position": [
+        176,
+        -16
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "name",
+              "field2": "labels"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "80f655e4-159c-47c0-94f1-5b87b6ad5e12",
+      "name": "Merge corresponding labels",
+      "type": "n8n-nodes-base.merge",
+      "position": [
+        464,
+        -112
+      ],
+      "typeVersion": 3.1,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "id"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "ad2c0d15-479f-48d9-ae87-a226774e73ae",
+      "name": "Aggregate label IDs",
+      "type": "n8n-nodes-base.aggregate",
+      "position": [
+        720,
+        -112
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Gmail trigger').item.json[\"id\"] }}",
+        "labelIds": "={{ $json.id }}"
+      },
+      "id": "87a50b06-fc98-4953-a0ef-4a67fab96e4b",
+      "name": "Add labels to message",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        944,
+        -112
+      ],
+      "webhookId": "4f345fc9-2afd-478b-be3b-d3d28f0fbc82",
+      "typeVersion": 2.1,
+      "alwaysOutputData": true,
+      "retryOnFail": true,
+      "maxTries": 5,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c1PsSFYX5rP8LWr3",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail trigger": {
+      "main": [
+        [
+          {
+            "node": "Get message content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get message content": {
+      "main": [
+        [
+          {
+            "node": "Call Ollama Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Ollama Classifier": {
+      "main": [
+        [
+          {
+            "node": "Extract Label",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Label": {
+      "main": [
+        [
+          {
+            "node": "Set label values",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set label values": {
+      "main": [
+        [
+          {
+            "node": "Get all labels",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Split out assigned labels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get all labels": {
+      "main": [
+        [
+          {
+            "node": "Merge corresponding labels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split out assigned labels": {
+      "main": [
+        [
+          {
+            "node": "Merge corresponding labels",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge corresponding labels": {
+      "main": [
+        [
+          {
+            "node": "Aggregate label IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate label IDs": {
+      "main": [
+        [
+          {
+            "node": "Add labels to message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "4172b8e9-877a-4a9d-acdb-85cd1359956b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "854f4b64b043c3974c27ee4e34328dc4dd196fc8fc63a70578b3a03d573566ed"
+  },
+  "id": "tTZ1oBKF26wTiBny",
+  "tags": []
+}

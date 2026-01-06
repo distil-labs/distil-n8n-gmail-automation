@@ -1,0 +1,350 @@
+{
+  "name": "Classify Emails (Batch)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "95081168-0d44-4b92-981b-7b483d8658e9",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [
+        -1184,
+        -704
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 100,
+        "filters": {}
+      },
+      "id": "7d9dd9ed-26f6-433e-a5d6-8e2f37e4ed64",
+      "name": "Get Last 20 Emails",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        -960,
+        -704
+      ],
+      "typeVersion": 2.1,
+      "webhookId": "771cbbe4-5c9a-495e-bfb9-ac07b4dfe555",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c1PsSFYX5rP8LWr3",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "616f2328-ec1a-44ad-9ad3-874a2a75232a",
+      "name": "Loop Over Emails",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        -656,
+        -688
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:11434/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"email-classifier\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a classifier working on a problem described in task_description XML block:\\n<task_description>## Task\\nClassify incoming emails into one of ten predefined categories to enable intelligent email organization, prioritization, and automation workflows. The classification must accurately determine the email's primary purpose and intent based on comprehensive analysis of sender information, subject line, body content, formatting patterns, and contextual signals. The system should handle multi-lingual emails (English and French), mixed personal/professional contexts, and edge cases where emails may contain elements of multiple categories.\\n\\n## Inputs\\nComplete email content including:\\n- Subject line (required)\\n- Email body text (required)\\n- Sender information (when available)\\n- Metadata such as timestamps, domains, and formatting (when available)\\n\\n## Outputs\\nA single category label that best represents the email's primary purpose and expected user action.\\n\\n## Classification Guidelines\\n1. **Multi-category Resolution:** When an email contains elements of multiple categories, classify based on the PRIMARY user action required. Priority order for ambiguous cases: Security > Spam > Billing > Work > Travel > Shipping > Personal > Promotional > Newsletter > Other.\\n2. **Language Handling:** The system must accurately classify emails in both English and French based on content meaning. French keywords (e.g., 'facture', 'virement', 'livraison') must be recognized.\\n3. **Context Awareness:** Consider sender domain and structure. E.g., '@linkedin.com' about jobs is AI/Work, but about network posts is AI/Newsletter.\\n4. **Edge Case Principles:**\\n   - Security concerns always take precedence.\\n   - Obvious spam/phishing is always AI/Spam.\\n   - Transactional emails (receipts) go to AI/Billing.\\n   - Personal relationships override platform context.\\n   - Work context is determined by professional intent, not just sender.\\n\\n## Decision Logic Examples\\n- **LinkedIn Flow:** Job posting = AI/Work; Personal msg = AI/Personal; Digest = AI/Newsletter; Profile view = AI/Other.\\n- **Payment Flow:** If amount+ID present = AI/Billing; If phishing/scam = AI/Spam; If shipping focus = AI/Shipping.\\n- **Notification Flow:** Security alert = AI/Security; Payment = AI/Billing; Delivery = AI/Shipping; Personal msg = AI/Personal.</task_description>\\nClassify the input into one of the available classes, each class has a name in class_name and description in class_description XML block:\\n\\n<class_name>AI/Promotional</class_name>\\n<class_description>Marketing and sales communications from businesses, services, or platforms promoting products, services, features, or special offers. INDICATORS: Discount codes, limited-time deals, product launches, 'Upgrade today' calls-to-action, webinar invitations. EXAMPLES: SaaS discount offers, early access invites, Black Friday sales. EDGE CASES: Work-related webinar invites from vendors count as Promotional.</class_description>\\n\\n<class_name>AI/Travel</class_name>\\n<class_description>All communications related to travel arrangements, transportation bookings, accommodations, and trip logistics. INDICATORS: Flight/Hotel confirmations, boarding passes, car rental reservations, itineraries. EXAMPLES: Air France confirmations, Airbnb bookings, Eurostar tickets. EDGE CASES: Work conference travel is AI/Travel (logistics focus), not AI/Work.</class_description>\\n\\n<class_name>AI/Spam</class_name>\\n<class_description>Unsolicited, fraudulent, or malicious emails including phishing attempts, scams, lottery notifications, and suspicious requests. INDICATORS: Unrealistic promises ('You won!'), urgent threats, requests for passwords/SSN, generic greetings, poor grammar, mismatched sender domains. EXAMPLES: Phishing impersonating Amazon/banks, inheritance scams, crypto schemes. EDGE CASES: Legitimate security alerts go to AI/Security; aggressive but legitimate marketing goes to AI/Promotional.</class_description>\\n\\n<class_name>AI/Shipping</class_name>\\n<class_description>Order fulfillment communications including shipping confirmations, tracking updates, delivery notifications, and returns. INDICATORS: Tracking numbers (UPS/FedEx), 'Out for delivery' status, delivered photos, return labels. EXAMPLES: Amazon shipment updates, UPS delivery notifications. EDGE CASES: Order confirmations without shipping info often go to AI/Billing.</class_description>\\n\\n<class_name>AI/Security</class_name>\\n<class_description>Account security notifications including login alerts, authentication codes, and password changes. INDICATORS: New device logins, 2FA codes, password reset requests, suspicious activity alerts. EXAMPLES: Google sign-in alerts, Microsoft 2FA codes, GitHub security keys. EDGE CASES: If the email is a scam threat, it is AI/Spam.</class_description>\\n\\n<class_name>AI/Billing</class_name>\\n<class_description>Financial transaction communications including invoices, payment receipts, subscription charges, and refunds. INDICATORS: Invoice numbers, transaction IDs, 'Payment successful', subscription renewals, tax receipts. EXAMPLES: Stripe receipts, Netflix renewals, cloud billing statements. EDGE CASES: Order confirmations with payment info are AI/Billing; Expired trial upsells are AI/Promotional.</class_description>\\n\\n<class_name>AI/Work</class_name>\\n<class_description>Professional and employment-related communications including job opportunities, project updates, team collaboration, and career development. INDICATORS: Job postings, meeting agendas, sprint planning, pull requests, performance reviews, client emails. EXAMPLES: LinkedIn Recruiter messages, Jira updates, Slack digest, client project requirements. EDGE CASES: Professional conference travel is AI/Travel; Work-related SaaS receipts are AI/Billing.</class_description>\\n\\n<class_name>AI/Newsletter</class_name>\\n<class_description>Curated content digests, regular informational updates, or periodic communications from subscribed sources. INDICATORS: Daily/weekly cadence, multiple article links, 'digest', 'roundup', unsubscribe links. EXAMPLES: TechCrunch daily, GitHub trending, Substack newsletters. EDGE CASES: A single dedicated promotional email from a newsletter sender is AI/Promotional.</class_description>\\n\\n<class_name>AI/Personal</class_name>\\n<class_description>Direct personal communications from friends, family, or colleagues regarding non-professional matters. INDICATORS: Casual tone, social plans (coffee/dinner), birthday wishes, personal advice. EXAMPLES: Friend asking to hang out, family updates, personal networking. EDGE CASES: Colleagues emailing about work are AI/Work; Platform notifications about messages are AI/Other.</class_description>\\n\\n<class_name>AI/Other</class_name>\\n<class_description>Miscellaneous communications including platform notifications, system messages, event registrations, and administrative notices. INDICATORS: Automated system updates, terms of service changes, community moderation, badge awards, meetup confirmations. EXAMPLES: Reddit upvote notifications, Terms of Service updates, event registrations. EDGE CASES: Security notifications must go to AI/Security.</class_description>\\n\\nWrite the name of the predicted class inside output XML block\\nFor example, if the input matches class test_output, write\\n<output>test_output</output>\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\":{{ JSON.stringify(\"From: \" + $json.From + \"\\nSubject: \" + $json.Subject + \"\\n\\n\" + $json.snippet) }}\n    }\n  ],\n  \"temperature\": 0\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -336,
+        -672
+      ],
+      "id": "599dd35a-a137-4268-a10f-ba5f2d0ee108",
+      "name": "Call Ollama Classifier",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the email ID from the loop\nconst emailData = $('Loop Over Emails').item.json;\nconst emailId = emailData.id;\nconst subject = emailData.subject || 'No Subject';\n\n// Extract the classification from Ollama response\nconst response = $input.first().json.choices[0].message.content;\n\n// Try multiple patterns to extract the label\nlet label = 'AI/Other';\nconst patterns = [\n  /<output>(.*?)<\\/output>/,\n  /<o>(.*?)<\\/o>/,\n  /AI\\/[A-Za-z]+/\n];\n\nfor (const pattern of patterns) {\n  const match = response.match(pattern);\n  if (match) {\n    label = match[1] || match[0];\n    break;\n  }\n}\n\n// Clean up label\nlabel = label.trim();\n\nreturn [{ \n  messageId: emailId,\n  subject: subject,\n  predicted_label: label,\n  raw_response: response\n}];"
+      },
+      "id": "1d1b0bfe-d2f0-4627-92e8-92e351124ae9",
+      "name": "Extract Label",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -128,
+        -672
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "resource": "label",
+        "returnAll": true
+      },
+      "id": "7d3f3af4-05e0-45ff-bdae-92f552e38f78",
+      "name": "Get All Gmail Labels",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        48,
+        -672
+      ],
+      "typeVersion": 2.1,
+      "webhookId": "a14932e4-3add-4f56-8040-0812ae8b2196",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c1PsSFYX5rP8LWr3",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get the predicted label and message ID\nconst extractedData = $('Extract Label').item.json;\nconst messageId = extractedData.messageId;\nconst predictedLabel = extractedData.predicted_label;\nconst subject = extractedData.subject;\n\n// Get all Gmail labels\nconst allLabels = $('Get All Gmail Labels').all();\n\n// Find matching label ID\nlet labelId = null;\nfor (const label of allLabels) {\n  if (label.json.name === predictedLabel) {\n    labelId = label.json.id;\n    break;\n  }\n}\n\nif (!labelId) {\n  console.log('Label not found for: ' + predictedLabel);\n}\n\nreturn [{\n  messageId: messageId,\n  subject: subject,\n  predicted_label: predictedLabel,\n  labelId: labelId\n}];"
+      },
+      "id": "6345c553-9d61-4eee-a158-a8283a2e904a",
+      "name": "Match Label ID",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        240,
+        -672
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.messageId }}",
+        "labelIds": "={{ [$json.labelId] }}"
+      },
+      "id": "346ca9f7-aff7-469b-b862-0b788d1b9235",
+      "name": "Add Label to Email",
+      "type": "n8n-nodes-base.gmail",
+      "position": [
+        928,
+        -688
+      ],
+      "typeVersion": 2.1,
+      "webhookId": "b7c7782d-964e-477d-a45c-58262b9f52c5",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "c1PsSFYX5rP8LWr3",
+          "name": "Gmail account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "id": "fe678710-4507-46b3-b38f-8012cc4653bc",
+      "name": "Skip (No Label Found)",
+      "type": "n8n-nodes-base.noOp",
+      "position": [
+        736,
+        -512
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {},
+      "id": "42b64170-00cc-476b-aa4a-1cfd251874f6",
+      "name": "Back to Loop",
+      "type": "n8n-nodes-base.noOp",
+      "position": [
+        1168,
+        -544
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7ec90ff7-c6da-4d99-8c66-3dd61857bec9",
+              "leftValue": "={{ $json.labelId }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        -672
+      ],
+      "id": "9fa5c7e4-d1c0-4d4e-92d7-f021d477f9fe",
+      "name": "If"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Last 20 Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Last 20 Emails": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Emails": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Call Ollama Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Ollama Classifier": {
+      "main": [
+        [
+          {
+            "node": "Extract Label",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Label": {
+      "main": [
+        [
+          {
+            "node": "Get All Gmail Labels",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get All Gmail Labels": {
+      "main": [
+        [
+          {
+            "node": "Match Label ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match Label ID": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add Label to Email": {
+      "main": [
+        [
+          {
+            "node": "Back to Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip (No Label Found)": {
+      "main": [
+        [
+          {
+            "node": "Back to Loop",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Back to Loop": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Add Label to Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip (No Label Found)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "a6d10a23-8d39-488d-8c0b-f50391a972b1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "854f4b64b043c3974c27ee4e34328dc4dd196fc8fc63a70578b3a03d573566ed"
+  },
+  "id": "qf7WdL7w0PYbo2Pr",
+  "tags": []
+}
