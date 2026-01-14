@@ -1,0 +1,14 @@
+{
+  "base":
+    {
+      "task": "classification",
+      "student_model_name": "Qwen3-0.6B",
+      "teacher_model_name": "openai.gpt-oss-120b",
+    },
+  "tuning":
+    {
+      "num_train_epochs": 32,
+      "per_device_train_batch_size": 1,
+      "per_device_eval_batch_size": 1,
+    },
+}
