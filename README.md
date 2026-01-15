@@ -1,6 +1,6 @@
 # We fine-tuned an email classification model so you can auto-label your emails locally with n8n.
 
-<img src="https://github.com/distil-labs/distil-n8n-gmail-automation/blob/main/disitllabs-n8n.svg" alt="distillabs X n8n" />
+<img src="https://github.com/distil-labs/distil-n8n-gmail-automation/blob/main/distillabs-n8n.svg" alt="distillabs X n8n" />
 
 We built a fully local Gmail auto-labeler with n8n + a fine-tuned 0.6B model (no email content sent to cloud LLMs)
 
