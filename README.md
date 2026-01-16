@@ -122,7 +122,7 @@ Once this is running, New messages get labeled automatically.
 
 If you want different labels, you can distill a custom version of this classifier on the [distil labs platform](https://www.distillabs.ai/?utm_source=github&utm_medium=referral&utm_campaign=distil-n8n-email-classifier). When you sign up, you get two free training credits to train the model.
 
-Full Write up: [www.distillabs.ai/blog/how-to-label-your-emails-locally-with-a-distil-labs-fine-tuned-model-and-n8n](http://www.distillabs.ai/blog/how-to-label-your-emails-locally-with-a-distil-labs-fine-tuned-model-and-n8n?utm_source=github&utm_medium=referral&utm_campaign=distil-n8n-email-classifier)
+Full Write up: [https://www.distillabs.ai/blog/building-a-local-agent-for-email-classification-using-n8n-distil-labs](https://www.distillabs.ai/blog/building-a-local-agent-for-email-classification-using-n8n-distil-labs?utm_source=github&utm_medium=referral&utm_campaign=distil-n8n-email-classifier)
 
 workflows: https://github.com/distil-labs/distil-n8n-gmail-automation
 
